@@ -4,7 +4,7 @@ $app->post('/user/reg', function () use($app) {
 	global $SIuserreg;
 	
 	//echo "This is user registration section";	
-	$body = json_decode($app->request()->getBody());
+	$body = json_decode($_POST['content']);
 	
 	//check purpose
 	$purpose = $body->meta->purpose;
@@ -50,40 +50,101 @@ $app->post('/user/reg', function () use($app) {
 		$key=getkey($time);
 		//get user info
 		$form = parseform($body);
+
 		//encrypt user info
 		$result = encryptdb(json_encode($form),$key);
 		
-		//Save to CA db
-		//table: nik| userinfo| date created| IV
+		//Save to temp file
+		//table: nik| userinfo| date created| IV| publickey
 		$userinfo = $result[0];
 		$iv = $result[1];
+		$current_date = new DateTime("now");
 		
+		//utf8 conversion, because json_encode silently error when use with binary
+		$table = array(	'nik' => $body->userinfo->nik,
+				'userinfo' => utf8_encode($userinfo),
+				'created' => $time,
+				'iv' => utf8_encode($iv),
+				'publickey' => utf8_encode($response->pubkey)
+		);
+		
+		$table = json_encode($table);
+		
+		//generate registration code
+		$length = 8;
+		$regcode = bin2hex(openssl_random_pseudo_bytes($length));
+		$filename = "tmp/". $regcode . ".reg.tmp";
+		//save table to temp file. 
+		file_put_contents($filename, $table);
+		//save signature image
+		$target_dir = "tmp/". $regcode.".sig.jpg";
+		if (move_uploaded_file($_FILES['file_contents']['tmp_name'], $target_dir)) {
+			//echo $message = "The file ". $target_dir . " has been uploaded.";
+		} else {
+			//echo $message = "Sorry, there was an error uploading your file.";
+		}
+
 	}
-	
+
 	//construct response to RA
 	header('Content-Type: application/json');
 	switch ($error) {
 	case 0:
 		//send pubkey 
-		echo json_encode(array(	'success' => true
+		echo json_encode(array(	'success' => true,
+					'regcode' => $regcode
 		));
 		break;
 	case 1:
 		echo json_encode(array(	'success' => false,
-								'reason' => "SI message: ".$response->reason
+					'reason' => "SI message: ".$response->reason
 		));
 		break;
 	case 2:
 		echo json_encode(array(	'success' => false,
-								'reason' => "CA Message : "."Invalid Purpose"
+					'reason' => "CA Message : "."Invalid Purpose"
 		));
 		break;
 	default:
 		echo json_encode(array(	'success' => false,
-								'reason' => "CA Message : "."Request not complete"
+					'reason' => "CA Message : "."Request not complete"
 		));
 		break;
 	}
+});
+
+$app->get('/user/regconfirm', function () use($app) {
+	echo "Hello";
+	$regcode = $_GET['regcode'];
+	
+	//get temp file
+	$filename = "tmp/". $regcode . ".reg.tmp";
+	$postreg = json_decode(file_get_contents($filename), true);
+	$idnumber = $postreg['nik'];
+	$userinfo = utf8_decode($postreg['userinfo']);
+	$iv =  utf8_decode($postreg['iv']);
+	$key=getkey($postreg['created']);
+	
+	//decode and show userinfo
+	echo decryptdb($userinfo,$iv,$key);
+	
+	//save device id
+	$deviceid = array('deviceid' => $_GET['deviceid']);
+	$table = array_merge($postreg,$deviceid);
+	
+	//utf8 decode
+	$table['userinfo'] = utf8_decode($table['userinfo']);
+	$table['iv'] = utf8_decode($table['userinfo']);
+	$table['publickey'] = utf8_decode($table['publickey']);
+	
+	//save to database
+	//table: nik| userinfo| date created| IV| publickey | deviceid
+	
+	//var_dump($table);
+	
+	//delete temp file
+	unlink($filename = "tmp/". $regcode . ".reg.tmp");
+	rename($filename = "tmp/". $regcode . ".sig.jpg", "data/signature/". $idnumber . ".sig.jpg");
 });
 
 function parseform($data) {

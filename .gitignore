@@ -1,4 +1,4 @@
 vendor/
-.env
+.c9
 composer.lock
 composer.phar
