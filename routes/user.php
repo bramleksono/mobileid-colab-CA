@@ -1,16 +1,13 @@
 <?php
 
-$app->post('/user/reg', function () use($app) {
+$app->post('/user/reg', function () use($app,$temp_register_obj) {
 	global $SIuserreg;
 	
 	//echo "This is user registration section";	
-	$body = json_decode($_POST['content']);
-	
+	$body = json_decode($app->request()->getBody());
 	//check purpose
 	$purpose = $body->meta->purpose;
-	
-	$pin = $body->userinfo->pin;
-	
+
 	//initialize error
 	$error = 3;
 	
@@ -18,23 +15,36 @@ $app->post('/user/reg', function () use($app) {
 		//check purpose
 		switch ($purpose) {
 		case "userreg":
-			//echo "You want user reg";
+			//use time as key
+			$current_date = new DateTime("now");
+			$time = $current_date->format('Y-m-d H:i:s');
+			$key=getkey($time);
+			//get user info
+			$form = parseform($body);
+	
+			//encrypt user info
+			$result = encryptdb(json_encode($form),$key);
 			
-			//send request to SI
-			$data = constregtoSI($body);
-			$data = json_encode($data);
+			$userinfo = $result[0];
+			$iv = $result[1];
+	
+			$temp_register_obj->set("nik", $body->userinfo->nik);
+			$temp_register_obj->set("userinfo", utf8_encode($userinfo));
+			$temp_register_obj->set("created", $time);
+			$temp_register_obj->set("iv", utf8_encode($iv));
 			
-			$response = sendjson($data,$SIuserreg);
-			$response = json_decode($response);
-			
-			//check if error exist
-			if ($response->success = true) {
-				$error=0;
-			}
-			else
-				//SI sent error message
-				$error=1;
-								
+			try {
+			  $temp_register_obj->save();
+			  //retrieve registration code
+			  $regcode = $temp_register_obj->getObjectId();
+			  //echo 'New object created with objectId: ' . $regcode;
+			  $error=0;
+			} catch (ParseException $ex) {  
+			  // Execute any logic that should take place if the save fails.
+			  // error is a ParseException object with an error code and message.
+			  // echo 'Failed to create new object, with error message: ' + $ex->getMessage();
+			  $error=1;
+			}				
 			break;
 		default:
 			$error = 2;
@@ -42,48 +52,19 @@ $app->post('/user/reg', function () use($app) {
 		}
 	}
 	
-	//save userinfo to database
+	//save temporary info to database
 	if ($error == 0) {
-        //use time as key
-		$current_date = new DateTime("now");
-		$time = $current_date->format('Y-m-d H:i:s');
-		$key=getkey($time);
-		//get user info
-		$form = parseform($body);
 
-		//encrypt user info
-		$result = encryptdb(json_encode($form),$key);
 		
-		//Save to temp file
-		//table: nik| userinfo| date created| IV| publickey
-		$userinfo = $result[0];
-		$iv = $result[1];
-		$current_date = new DateTime("now");
-		
-		//utf8 conversion, because json_encode silently error when use with binary
-		$table = array(	'nik' => $body->userinfo->nik,
-				'userinfo' => utf8_encode($userinfo),
-				'created' => $time,
-				'iv' => utf8_encode($iv),
-				'publickey' => utf8_encode($response->pubkey)
-		);
-		
-		$table = json_encode($table);
-		
-		//generate registration code
-		$length = 8;
-		$regcode = bin2hex(openssl_random_pseudo_bytes($length));
-		$filename = "tmp/". $regcode . ".reg.tmp";
 		//save table to temp file. 
-		file_put_contents($filename, $table);
+		//file_put_contents($filename, $table);
 		//save signature image
-		$target_dir = "tmp/". $regcode.".sig.jpg";
-		if (move_uploaded_file($_FILES['file_contents']['tmp_name'], $target_dir)) {
+		//$target_dir = "tmp/". $regcode.".sig.jpg";
+		//if (move_uploaded_file($_FILES['file_contents']['tmp_name'], $target_dir)) {
 			//echo $message = "The file ". $target_dir . " has been uploaded.";
-		} else {
+		//} else {
 			//echo $message = "Sorry, there was an error uploading your file.";
-		}
-
+		//}
 	}
 
 	//construct response to RA
@@ -97,7 +78,7 @@ $app->post('/user/reg', function () use($app) {
 		break;
 	case 1:
 		echo json_encode(array(	'success' => false,
-					'reason' => "SI message: ".$response->reason
+					'reason' => "Cannot contacting database"
 		));
 		break;
 	case 2:
@@ -113,38 +94,182 @@ $app->post('/user/reg', function () use($app) {
 	}
 });
 
-$app->get('/user/regconfirm', function () use($app) {
-	echo "Hello";
+$app->get('/user/regcheck', function () use($app,$temp_register_que) {
+	//echo "Hello";
 	$regcode = $_GET['regcode'];
 	
-	//get temp file
-	$filename = "tmp/". $regcode . ".reg.tmp";
-	$postreg = json_decode(file_get_contents($filename), true);
-	$idnumber = $postreg['nik'];
-	$userinfo = utf8_decode($postreg['userinfo']);
-	$iv =  utf8_decode($postreg['iv']);
-	$key=getkey($postreg['created']);
+	//init error
+	$error = 1;
 	
-	//decode and show userinfo
-	echo decryptdb($userinfo,$iv,$key);
+	try {
+		$regfield = $temp_register_que->get($regcode);
+		
+		if ($regfield) {
+			 //echo "Process request";
+			 $error = 0;
+		} else {
+	      // else throw exception
+	      throw new ResourceNotFoundException();
+		}
+	} catch (ResourceNotFoundException $e) {
+	    // return 404 server error
+	    $app->response()->status(404);
+	  } catch (Exception $e) {
+	    $app->response()->status(400);
+	    $app->response()->header('X-Status-Reason', $e->getMessage());
+	  }
+    
+    if ($error == 0) {
+		//get temp file
+		$idnumber = $regfield->get('nik');
+		$userinfo = utf8_decode($regfield->get('userinfo'));
+		$iv =  utf8_decode($regfield->get('iv'));
+		$key=getkey($regfield->get('created'));
+		
+		//decode and show userinfo
+		echo decryptdb($userinfo,$iv,$key);
+    }
+    
+    switch ($error) {
+	case 0:
+		break;
+	default:
+		echo json_encode(array(	'success' => false,
+					'reason' => "Cannot contacting database"
+		));
+		break;
+	}
+});
+
+
+$app->post('/user/regconfirm', function () use($app,$temp_register_que,$ca_userdb_obj,$ca_userdb_que,$ca_obs_userdb_obj) {
+	global $SIuserreg;
 	
-	//save device id
-	$deviceid = array('deviceid' => $_GET['deviceid']);
-	$table = array_merge($postreg,$deviceid);
+	//echo "Hello";
+	$body = json_decode($app->request()->getBody());
+	$regcode = $body->RegCode;
 	
-	//utf8 decode
-	$table['userinfo'] = utf8_decode($table['userinfo']);
-	$table['iv'] = utf8_decode($table['userinfo']);
-	$table['publickey'] = utf8_decode($table['publickey']);
+	//init error
+	$error = 3;
 	
-	//save to database
-	//table: nik| userinfo| date created| IV| publickey | deviceid
+	try {
+		$regfield = $temp_register_que->get($regcode);
+		
+		if ($regfield) {
+			 //echo "Process request";
+			 $error = 0;
+		} else {
+	      // else throw exception
+	      throw new ResourceNotFoundException();
+		}
+	} catch (ResourceNotFoundException $e) {
+	    // return 404 server error
+	    $app->response()->status(404);
+	  } catch (Exception $e) {
+	    $app->response()->status(400);
+	    $app->response()->header('X-Status-Reason', $e->getMessage());
+	  }
+    
+    if ($error == 0) {
+		//decode and show userinfo
+		$idnumber = $regfield->get('nik');
+		$userinfo = utf8_decode($regfield->get('userinfo'));
+		$iv =  utf8_decode($regfield->get('iv'));
+		$key=getkey($regfield->get('created'));
+		
+		$userinfo = json_decode(decryptdb($userinfo,$iv,$key));
+		$userinfo->signature = $body->Signature;
+		$result = encryptdb(json_encode($userinfo),$key);
+		
+		$userinfo = $result[0];
+		$iv = $result[1];		
+		//save device id
+		//$deviceid = array('deviceid' => $_GET['deviceid']);
+		//$table = array_merge($postreg,$deviceid);
+		
+		//send to SI and retrieve public key
+		$pin = $body->PIN;
+		$reg = (object) array("userinfo" => (object) array("nik" => $idnumber, "pin" => $pin));
+		$reg = constregtoSI($reg);
+		$reg = json_encode($reg);
+		try {
+			$response = sendjson($reg,$SIuserreg);
+			if (!empty($response)) {
+				$response=json_decode($response);
+				$error=0;
+			} else {
+				$error=2;
+				throw new ResourceNotFoundException();
+			}
+		} catch (ResourceNotFoundException $e) {
+			// return 404 server error
+			$app->response()->status(404);
+		} catch (Exception $e) {
+			$app->response()->status(400);
+			$app->response()->header('X-Status-Reason', $e->getMessage());
+		}
+    	
+    }
 	
-	//var_dump($table);
-	
-	//delete temp file
-	unlink($filename = "tmp/". $regcode . ".reg.tmp");
-	rename($filename = "tmp/". $regcode . ".sig.jpg", "data/signature/". $idnumber . ".sig.jpg");
+	if ($error == 0) {
+		//save to database
+		//move existing data to old database
+		$ca_userdb_que->equalTo("nik", $idnumber);
+		$results = $ca_userdb_que->find();
+		//echo "Successfully retrieved " . count($results) . " scores.";
+		// Do something with the returned ParseObject values
+		for ($i = 0; $i < count($results); $i++) {
+			$object = $results[$i];
+			$ca_obs_userdb_obj->set("nik", $object->nik);
+			$ca_obs_userdb_obj->set("pubkey", $object->pubkey);
+			$ca_obs_userdb_obj->set("created", $object->created);
+			$ca_obs_userdb_obj->save();
+			//$ca_obs_userdb_obj->getObjectId();
+			$object->destroy();
+		}
+		
+		//table: nik| userinfo| date created| IV| publickey | deviceid
+		$ca_userdb_obj->set("nik", $idnumber);
+		$ca_userdb_obj->set("userinfo", utf8_encode($userinfo));
+		$ca_userdb_obj->set("created", $regfield->get('created'));
+		$ca_userdb_obj->set("iv", utf8_encode($iv));
+		$ca_userdb_obj->set("pubkey", utf8_encode($response->pubkey));
+		$ca_userdb_obj->set("deviceid", $body->GCMAddress);
+		try {
+			$ca_userdb_obj->save();
+			//retrieve registration code
+			//$regcode = $ca_userdb_obj->getObjectId();
+			//echo 'New object created with objectId: ' . $regcode;
+			$error=0;
+		} catch (ParseException $ex) {
+			// Execute any logic that should take place if the save fails.
+			// error is a ParseException object with an error code and message.
+			// echo 'Failed to create new object, with error message: ' + $ex->getMessage();
+			$error=2;
+		}
+    }
+    
+    switch ($error) {
+	case 0:
+		echo json_encode(array(	'success' => true
+		));
+		break;
+	case 1:
+		echo json_encode(array(	'success' => false,
+					'reason' => "Cannot connect to SI"
+		));
+		break;
+	case 2:
+		echo json_encode(array(	'success' => false,
+					'reason' => "Cannot saving to database"
+		));
+		break;
+	default:
+		echo json_encode(array(	'success' => false,
+					'reason' => "Cannot contacting database"
+		));
+		break;
+	}
 });
 
 function parseform($data) {
@@ -183,9 +308,11 @@ function checkregrequest($data) {
 	//TODO check every field
 	if (!isset($data->meta->purpose))
 		return false;
-	if (!isset($data->userinfo->pin))
-		return false;
 	if (!isset($data->userinfo->nik))
 		return false;
 	return true;		
 }
+
+$app->error(function ( Exception $e ) use ($app) {
+    echo "error : " . $e;
+});
