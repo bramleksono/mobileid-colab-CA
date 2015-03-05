@@ -1,4 +1,15 @@
 <?php
+//Routes for mobileid-registration function
+
+//Parse Backend
+use Parse\ParseObject;
+use Parse\ParseQuery;
+
+$temp_register_obj = new ParseObject("ca_temp_register");
+$temp_register_que = new ParseQuery("ca_temp_register");
+$ca_userdb_obj = new ParseObject("ca_userdb");
+$ca_userdb_que = new ParseQuery("ca_userdb");
+$ca_obs_userdb_obj = new ParseObject("ca_obs_userdb");
 
 $app->post('/user/reg', function () use($app,$temp_register_obj) {
 	global $SIuserreg;
@@ -50,21 +61,6 @@ $app->post('/user/reg', function () use($app,$temp_register_obj) {
 			$error = 2;
 			break;
 		}
-	}
-	
-	//save temporary info to database
-	if ($error == 0) {
-
-		
-		//save table to temp file. 
-		//file_put_contents($filename, $table);
-		//save signature image
-		//$target_dir = "tmp/". $regcode.".sig.jpg";
-		//if (move_uploaded_file($_FILES['file_contents']['tmp_name'], $target_dir)) {
-			//echo $message = "The file ". $target_dir . " has been uploaded.";
-		//} else {
-			//echo $message = "Sorry, there was an error uploading your file.";
-		//}
 	}
 
 	//construct response to RA
@@ -144,6 +140,7 @@ $app->get('/user/regcheck', function () use($app,$temp_register_que) {
 
 $app->post('/user/regconfirm', function () use($app,$temp_register_que,$ca_userdb_obj,$ca_userdb_que,$ca_obs_userdb_obj) {
 	global $SIuserreg;
+	global $CAmessaging;
 	
 	//echo "Hello";
 	$body = json_decode($app->request()->getBody());
@@ -182,10 +179,7 @@ $app->post('/user/regconfirm', function () use($app,$temp_register_que,$ca_userd
 		$result = encryptdb(json_encode($userinfo),$key);
 		
 		$userinfo = $result[0];
-		$iv = $result[1];		
-		//save device id
-		//$deviceid = array('deviceid' => $_GET['deviceid']);
-		//$table = array_merge($postreg,$deviceid);
+		$iv = $result[1];
 		
 		//send to SI and retrieve public key
 		$pin = $body->PIN;
@@ -240,6 +234,11 @@ $app->post('/user/regconfirm', function () use($app,$temp_register_que,$ca_userd
 			//retrieve registration code
 			//$regcode = $ca_userdb_obj->getObjectId();
 			//echo 'New object created with objectId: ' . $regcode;
+			//send success message
+			$reg = (object) array("userinfo" => (object) array("nik" => $idnumber, "message" => "You are now registered to MobileID"));
+    		$reg = constmessagetoCA($reg);
+    		$reg = json_encode($reg);
+    		$result =sendjson($reg,$CAmessaging);
 			$error=0;
 		} catch (ParseException $ex) {
 			// Execute any logic that should take place if the save fails.
@@ -304,6 +303,17 @@ function constregtoSI($data) {
 	return $form;
 }
 
+function constmessagetoCA($data) {
+    $form = array(
+    				'meta' => array(
+    								'purpose' => 'sendmessage'),
+    				'userinfo' => array(
+    								'nik' => $data->userinfo->nik,
+    								'message' => $data->userinfo->message)
+                );
+    return $form;
+}
+
 function checkregrequest($data) {
 	//TODO check every field
 	if (!isset($data->meta->purpose))
@@ -312,7 +322,3 @@ function checkregrequest($data) {
 		return false;
 	return true;		
 }
-
-$app->error(function ( Exception $e ) use ($app) {
-    echo "error : " . $e;
-});

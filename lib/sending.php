@@ -1,7 +1,8 @@
 <?php
 
 function sendjson($data,$url) {
-	//curl less method
+	// send string input as json 
+	// curl less method
 	$options = array(
 		'http' => array(
 			'header'  => "Content-type: application/json\r\n",
