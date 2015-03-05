@@ -16,9 +16,9 @@ $addressfile = 'config/address.json';
 
 //Parse Backend
 use Parse\ParseClient;
-$app_id = "OVPsA58Uck3NCqpnrW7KTZJtThk8bIZJ11aLxlI6";
-$rest_key = "wP9kY83dL9X8JwzeLehDfz6Rv2FNSz64dTcrdOum";
-$master_key= "ebTqQ5LbSHU9yxl2rXx9nUL0cdFtNmaevAcmz5BX";
+$app_id = "";
+$rest_key = "";
+$master_key= "";
 ParseClient::initialize( $app_id, $rest_key, $master_key );
 
 //Lib
