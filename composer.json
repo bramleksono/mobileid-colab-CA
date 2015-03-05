@@ -1,7 +1,6 @@
 {
     "require": {
         "slim/slim": "2.*",
-        "twig/twig": "~1.0",
         "parse/php-sdk" : "1.0.*"
     }
 }

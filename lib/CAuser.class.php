@@ -15,7 +15,10 @@ class CAuser {
 	    $ca_userdb_que = new ParseQuery("ca_userdb");
 	    $ca_userdb_que->equalTo("nik", $idnumber);
 	    $results = $ca_userdb_que->find();
-        $this->userDB = $results[0];
+	    if ($results) {
+	    	$this->userDB = $results[0];
+	    }
+	    else $this->userDB = null;
 	}
 	
 	private function decryptUserDB() {
