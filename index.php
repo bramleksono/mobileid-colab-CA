@@ -25,6 +25,7 @@ ParseClient::initialize( $app_id, $rest_key, $master_key );
 require 'lib/CAcontroller.class.php';  // Handling Controller Class
 
 //Routes
+require 'routes/mid-CAsignature.php';
 require 'routes/mid-user.php';
 require 'routes/mid-login.php';
 require 'routes/mid-message.php';

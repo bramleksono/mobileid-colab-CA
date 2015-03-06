@@ -98,21 +98,92 @@ class CAcontroller {
     		$req = (object) array("userinfo" => $userinfo, "deviceid" => $deviceid, "message" => $message, "callback" => $callback);
     		$req = json_encode($req);
         	$result =sendjson($req,$SIlogin);
-    
+        	
         	$result = json_decode($result);
-            if ($result->success) {
-                $error=0;
-                $this->PID = $result->PID;
-            }
-            else {
-                $this->reason = $result->reason;
-                $error=2;
-            }
+        	if ($result) {
+                if ($result->success) {
+                    $this->PID = $result->PID;
+                    $error=0;
+                }
+                else {
+                    $this->reason = $result->reason;
+                    $error=2;
+                }        	    
+        	} else {
+        	    $this->reason = "Cannot connect to SI";
+        	    $error = 2;
+        	}
     	}
     	return $error;
     }
     
     public function loginreqoutput($error) {
+       switch ($error) {
+    	case 0:
+    		//send pubkey 
+            echo json_encode(array(	'success' => true,
+            						'PID' => $this->PID
+    		));
+    		break;
+    	case 1:
+    		echo json_encode(array(	'success' => false,
+                                    'reason' => "Cannot find user information"
+    		));
+    	default:
+    		echo json_encode(array(	'success' => false,
+    					'reason' => $this->reason
+    		));
+    		break;
+    	}
+    }
+    
+    // Verification Section
+    
+    public function verifyreq($request) {
+        global $SIverify;
+        $error=3;
+        
+        $idnumber = $request->userinfo->nik;
+	    $callback = $request->callback;
+	    $message = $request->message;
+	    //echo "Login request to ".$idnumber;
+	    $user = new CAuser($idnumber);
+	    
+	    if ($user->isRegistered()) {
+    		$userinfo = $user->getUserInfo();
+    		$deviceid = $user->getUserDevice();
+    	    $error=0;
+    	} else {
+    		echo "No result";
+            $error=1;
+    	}
+    	
+    	if ($error==0) {
+    		//send request to SI
+    		$req = (object) array("userinfo" => $userinfo, "deviceid" => $deviceid, "message" => $message, "callback" => $callback);
+    		$req = json_encode($req);
+        	$result =sendjson($req,$SIverify);
+        	
+        	$result = json_decode($result);
+        	if ($result) {
+                if ($result->success) {
+                    $this->PID = $result->PID;
+                    $error=0;
+                }
+                else {
+                    $this->reason = $result->reason;
+                    $error=2;
+                }        	    
+        	} else {
+        	    $this->reason = "Cannot connect to SI";
+        	    $error = 2;
+        	}
+
+    	}
+    	return $error;
+    }
+    
+    public function verifyreqoutput($error) {
        switch ($error) {
     	case 0:
     		//send pubkey 

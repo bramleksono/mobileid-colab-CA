@@ -9,9 +9,15 @@ $CAuserregconfirm = $CAaddr."/user/regconfirm";
 $CAmessaging = $CAaddr."/message";
 $CAlogin = $CAaddr."/login";
 $CAloginconfirm = $CAaddr."/login/confirm";
+$CAverify = $CAaddr."/verify";
+$CAverifyconfirm = $CAaddr."/verify/confirm";
+$CAcreatemessagesig = $CAaddr."/createsig";
+$CAverifymessagesig = $CAaddr."/verifysig";
 
 $SIaddr = $clientaddr->SI;
 $SIuserreg = $SIaddr."/user/reg";
 $SImessaging = $SIaddr."/message";
 $SIlogin = $SIaddr."/login";
 $SIloginconfirm = $SIaddr."/login/confirm";
+$SIverify = $SIaddr."/verify";
+$SIverifyconfirm = $SIaddr."/verify/confirm";

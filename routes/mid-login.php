@@ -18,6 +18,8 @@ $app->post('/login/confirm', function () use ($app) {
 	$body = json_decode($app->request()->getBody());
 	$callback = $body->callback;
 	$PID = $body->PID;
+	//construct response
+	header('Content-Type: application/json');
 	$form = json_encode(array(	'success' => true,
         				'PID' => $PID
         				));
