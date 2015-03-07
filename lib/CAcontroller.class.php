@@ -1,4 +1,5 @@
 <?php
+require 'CApid.class.php'; // Handling CA PID interaction with database
 require 'CAuser.class.php';  // Handling User Class
 require 'crypt.php';  // Handling cryptographic function
 require 'addstruct.php';  // Construct client address
@@ -102,7 +103,20 @@ class CAcontroller {
         	$result = json_decode($result);
         	if ($result) {
                 if ($result->success) {
-                    $this->PID = $result->PID;
+                    $PID = $result->PID;
+                    $this->PID = $PID;
+                    
+                    //save PID to DB
+                    $current_date = new DateTime("now");
+                	$time = $current_date->format('Y-m-d H:i:s');
+                	$key=getkey($time);
+                	//encrypt PID
+            	    $result = encryptdb(json_encode($req),$key);
+                	$data = $result[0];
+                	$iv = $result[1];
+                	
+                    $piddb = new CApid($PID);
+                    $pidresult = $piddb->storePIDDB($PID,$data,$time,$iv);
                     $error=0;
                 }
                 else {
@@ -136,6 +150,50 @@ class CAcontroller {
     		break;
     	}
     }
+
+    public function loginconfirmoutput($request) {
+        $error=2;
+        
+       // check if PID exist
+	    $PID = $request->PID;
+        
+        $piddb = new CApid($PID);
+        $piddb->fetchPIDDB();
+        
+        if ($piddb->isExist()) {
+            $error = 0;
+        } else {
+            $error = 2;
+            $this->reason = "cannot find PID";
+        }
+        
+        //send response to SI
+       switch ($error) {
+    	case 0:
+            echo json_encode(array(	'success' => true,
+            						'PID' => $PID
+    		));
+    		break;
+    	case 1:
+    		echo json_encode(array(	'success' => false,
+                                    'reason' => "Cannot find user information"
+    		));
+    	default:
+    		echo json_encode(array(	'success' => false,
+    					'reason' => $this->reason
+    		));
+    		break;
+    	}
+    	
+    	//return form
+    	if ($error == 0) {
+    	    return json_encode(array(	'success' => true,
+            						    'PID' => $PID,
+    		));
+    	} else {
+    	    return null;
+    	}
+    }
     
     // Verification Section
     
@@ -167,7 +225,21 @@ class CAcontroller {
         	$result = json_decode($result);
         	if ($result) {
                 if ($result->success) {
-                    $this->PID = $result->PID;
+                    $PID = $result->PID;
+                    $this->PID = $PID;
+                    
+                    //save PID to DB
+                    $current_date = new DateTime("now");
+                	$time = $current_date->format('Y-m-d H:i:s');
+                	$key=getkey($time);
+                	//encrypt PID
+            	    $result = encryptdb(json_encode($req),$key);
+                	$data = $result[0];
+                	$iv = $result[1];
+                	
+                    $piddb = new CApid($PID);
+                    $pidresult = $piddb->storePIDDB($PID,$data,$time,$iv);
+                    
                     $error=0;
                 }
                 else {
@@ -200,6 +272,53 @@ class CAcontroller {
     					'reason' => $this->reason
     		));
     		break;
+    	}
+    }
+    
+    public function verifyconfirmoutput($request) {
+        $error=2;
+        
+       // check if PID exist
+	    $PID = $request->PID;
+        $idnumber = $request->userinfo->nik;
+        
+        $piddb = new CApid($PID);
+        $piddb->fetchPIDDB();
+        
+        if ($piddb->isExist()) {
+            $error = 0;
+        } else {
+            $error = 2;
+            $this->reason = "cannot find PID";
+        }
+        
+        //send response to SI
+       switch ($error) {
+    	case 0:
+            echo json_encode(array(	'success' => true,
+            						'PID' => $PID
+    		));
+    		break;
+    	case 1:
+    		echo json_encode(array(	'success' => false,
+                                    'reason' => "Cannot find user information"
+    		));
+    	default:
+    		echo json_encode(array(	'success' => false,
+    					'reason' => $this->reason
+    		));
+    		break;
+    	}
+    	
+    	//return form
+    	if ($error == 0) {
+    	    $data = json_decode($piddb->getPID());
+    	    return json_encode(array(	'success' => true,
+            						    'PID' => $PID,
+            						    'userinfo' => $data->userinfo
+    		));
+    	} else {
+    	    return null;
     	}
     }
 }

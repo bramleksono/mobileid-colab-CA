@@ -6,11 +6,11 @@ $app->post('/message', function () use ($app) {
     
 	$body = json_decode($app->request()->getBody());
 	
-	$sendmessage = new CAcontroller();
-	$error = $sendmessage->messagereq($body);
+	$controller = new CAcontroller();
+	$error = $controller->messagereq($body);
 	
     //construct response to RA
 	header('Content-Type: application/json');
-	echo $sendmessage->messagereqoutput($error);
+	echo $controller->messagereqoutput($error);
 });
 
