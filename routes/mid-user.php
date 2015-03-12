@@ -174,8 +174,9 @@ $app->post('/user/regconfirm', function () use($app,$temp_register_que,$ca_userd
 		$iv =  utf8_decode($regfield->get('iv'));
 		$key=getkey($regfield->get('created'));
 		
-		$userinfo = json_decode(decryptdb($userinfo,$iv,$key));
-		$userinfo->signature = $body->Signature;
+		//strange bug in heroku: json decode return null when using object result
+		$userinfo = json_decode(decryptdb($encrypted,$iv,$key), true);
+        $userinfo["signature"] = $body->Signature;
 		$result = encryptdb(json_encode($userinfo),$key);
 		
 		$userinfo = $result[0];
