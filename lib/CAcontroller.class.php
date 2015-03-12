@@ -135,16 +135,16 @@ class CAcontroller {
        switch ($error) {
     	case 0:
     		//send pubkey 
-            echo json_encode(array(	'success' => true,
+            return json_encode(array(	'success' => true,
             						'PID' => $this->PID
     		));
     		break;
     	case 1:
-    		echo json_encode(array(	'success' => false,
+    		return json_encode(array(	'success' => false,
                                     'reason' => "Cannot find user information"
     		));
     	default:
-    		echo json_encode(array(	'success' => false,
+    		return json_encode(array(	'success' => false,
     					'reason' => $this->reason
     		));
     		break;
