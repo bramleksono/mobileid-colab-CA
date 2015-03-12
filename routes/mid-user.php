@@ -170,7 +170,7 @@ $app->post('/user/regconfirm', function () use($app,$temp_register_que,$ca_userd
     if ($error == 0) {
 		//decode and show userinfo
 		$idnumber = $regfield->get('nik');
-		$userinfo = utf8_decode($regfield->get('userinfo'));
+		$encrypted = utf8_decode($regfield->get('userinfo'));
 		$iv =  utf8_decode($regfield->get('iv'));
 		$key=getkey($regfield->get('created'));
 		
