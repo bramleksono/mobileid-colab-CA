@@ -26,7 +26,7 @@ class CAuser {
 	    $userinfo = utf8_decode($encrypted->get('userinfo'));
 		$iv = utf8_decode($encrypted->get('iv'));
 		$key = getkey($encrypted->get('created'));
-		return json_decode(decryptdb($userinfo,$iv,$key));
+		return decryptdb($userinfo,$iv,$key);
 	}
 	
 	public function isRegistered() {
@@ -39,8 +39,8 @@ class CAuser {
 	}
 	
 	public function getUserInfo() {
-        $userinfo = $this->decryptUserDB();
-		unset($userinfo->signature);
+        $userinfo = json_decode($this->decryptUserDB(),true);
+		unset($userinfo["signature"]);
 		return $userinfo;
 	}
 	
