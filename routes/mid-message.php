@@ -4,7 +4,7 @@
 $app->post('/message', function () use ($app) {
 	//example query : {"meta":{"purpose":"sendmessage"},"userinfo":{"nik":"1231230509890001","message":"Hello"}}
     
-	$body = json_decode($app->request()->getBody());
+	$body = json_decode($app->request()->getBody(), true);
 	
 	$controller = new CAcontroller();
 	$error = $controller->messagereq($body);

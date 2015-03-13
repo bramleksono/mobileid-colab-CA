@@ -22,7 +22,7 @@ class CAcontroller {
         global $SImessaging;
         $error = 3;
         
-        $idnumber = $request->userinfo->nik;
+        $idnumber = $request["userinfo"]["nik"];
         $user = new CAuser($idnumber);
         if ($user->isRegistered()) {
     		$deviceid = $user->getUserDevice();
@@ -32,7 +32,7 @@ class CAcontroller {
     	}
     	
     	if ($error==0) {
-    	    $reg = (object) array("userinfo" => (object) array("deviceid" => $deviceid, "message" => $request->userinfo->message));
+    	    $reg = (object) array("userinfo" => (object) array("deviceid" => $deviceid, "message" => $request["userinfo"]["message"]));
         	$reg = $this->constmessagetoSI($reg);
         	$reg = json_encode($reg);
         	$result =sendjson($reg,$SImessaging);
