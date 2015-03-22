@@ -3,6 +3,7 @@
 //Load Address
 $clientaddr = json_decode(file_get_contents($addressfile));
 $CAaddr = $clientaddr->CA;
+$CAuserinitial = $CAaddr."/user/initial";
 $CAuserreg = $CAaddr."/user/reg";
 $CAuserregcheck = $CAaddr."/user/regcheck";
 $CAuserregconfirm = $CAaddr."/user/regconfirm";
@@ -21,3 +22,6 @@ $SIlogin = $SIaddr."/login";
 $SIloginconfirm = $SIaddr."/login/confirm";
 $SIverify = $SIaddr."/verify";
 $SIverifyconfirm = $SIaddr."/verify/confirm";
+
+$Webaddr = $clientaddr->Web;
+$Webloginconfirm = $Webaddr."/process/confirm";

@@ -11,6 +11,17 @@ $ca_userdb_obj = new ParseObject("ca_userdb");
 $ca_userdb_que = new ParseQuery("ca_userdb");
 $ca_obs_userdb_obj = new ParseObject("ca_obs_userdb");
 
+$app->post('/user/initial', function () use($app,$temp_register_obj) {
+   //example query : {"userinfo":{"nik":"1231230509890001"}}
+	$body = json_decode($app->request()->getBody(), true);
+	$controller = new CAcontroller();
+	$error = $controller->userinitial($body);
+	
+	//construct response
+	header('Content-Type: application/json');
+	echo $controller->userinitialoutput($error);	
+});
+
 $app->post('/user/reg', function () use($app,$temp_register_obj) {
 	global $SIuserreg;
 	

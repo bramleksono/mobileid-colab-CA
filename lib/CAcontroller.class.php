@@ -6,7 +6,6 @@ require 'addstruct.php';  // Construct client address
 require 'sending.php';  // Handling sending http request function
 
 class CAcontroller {
-    // Message Section
     
     private function constmessagetoSI($data) {
         return array(
@@ -18,6 +17,64 @@ class CAcontroller {
                     );
     }
     
+    private function get_starred($str){
+        $len = strlen($str);
+        return substr($str, 0,1). str_repeat('*',$len - 2) . substr($str, $len - 1 ,1);
+    }
+    
+    // User Intital Section
+    public function userinitial($request) {
+        $error = 3;
+        
+        $idnumber = $request["userinfo"]["nik"];
+        $user = new CAuser($idnumber);
+        if ($user->isRegistered()) {
+    		$deviceid = $user->getUserDevice();
+    	    $error=0;
+    	} else {
+            $error=1;
+    	}
+    	
+    	if ($error==0) {
+    	    $userinfo = $user->getUserInfo();
+    	    if ($userinfo) {
+        	    $name = $userinfo["nama"];
+        	    $name = $this->get_starred($name);
+        	    $this->initial = $name;    	        
+    	    } else {
+    	        $error=2;
+    	    }
+    	}
+    	return $error;
+    }
+
+    public function userinitialoutput($error) {
+        switch ($error) {
+    	case 0:
+    		//send pubkey 
+            return json_encode(array(	'success' => true,
+                        'initial' => $this->initial
+    		));
+    		break;
+    	case 1:
+    		return json_encode(array(	'success' => false,
+    					'reason' => "User is not registered"
+    		));
+    		break;
+    	case 2:
+    		return json_encode(array(	'success' => false,
+    					'reason' => "Cannot read database"
+    		));
+    		break;
+        default:
+    		return json_encode(array(	'success' => false,
+    					'reason' => "Unknown Error"
+    		));
+    		break;
+    	}
+    }
+    
+    // Message Section
     public function messagereq($request) {
         global $SImessaging;
         $error = 3;
