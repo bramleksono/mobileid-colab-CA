@@ -30,6 +30,7 @@ require 'routes/mid-user.php';
 require 'routes/mid-login.php';
 require 'routes/mid-message.php';
 require 'routes/mid-verify.php';
+require 'routes/mid-document.php';
 
 //Time
 date_default_timezone_set("Asia/Jakarta"); 

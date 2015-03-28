@@ -254,4 +254,127 @@ class CAcontroller {
     	    return null;
     	}
     }
+    
+    public function documentreq($request) {
+        global $SIdocument;
+        $error=3;    
+        
+        $idnumber = $request["signerid"];
+        
+        //get user info
+        $user = new CAuser($idnumber);
+	    
+	    if ($user->isRegistered()) {
+	        $userinfo = $user->getUserInfowithSignature();
+    		$deviceid = $user->getUserDevice();
+    	    $error=0;
+    	} else {
+            $error=1;
+    	}
+    	
+    	if ($error==0) {
+    		//send request to SI
+    		$document = array("fileurl" => $request["fileurl"], "filehash" => $request["filehash"], "documentname" => $request["documentname"]);
+    		
+    		$req = (object) array("userinfo" => $userinfo, "deviceid" => $deviceid, "message" => $request["message"], "callback" => $request["callback"], "documentnumber" => $request["documentnumber"], "document" => $document);
+    		$req = json_encode($req);
+        	$result = sendjson($req,$SIdocument);
+        	
+        	$result = json_decode($result, true);
+        	if ($result) {
+                if ($result["success"]) {
+                    $PID = $result["PID"];
+                    $this->PID = $PID;
+                    
+                    //save PID to DB
+                    $current_date = new DateTime("now");
+                	$time = $current_date->format('Y-m-d H:i:s');
+                	$key=getkey($time);
+                	//encrypt PID
+            	    $result = encryptdb(json_encode($req),$key);
+                	$data = $result[0];
+                	$iv = $result[1];
+                	
+                    $piddb = new CApid($PID);
+                    $pidresult = $piddb->storePIDDB($PID,$data,$time,$iv);
+                    
+                    $error=0;
+                }
+                else {
+                    $this->reason = $result->reason;
+                    $error=2;
+                }        	    
+        	} else {
+        	    $this->reason = "Cannot connect to SI";
+        	    $error = 2;
+        	}
+    	}
+    	return $error;
+    }
+
+    public function documentreqoutput($error) {
+       switch ($error) {
+    	case 0:
+    		//send pubkey 
+            return json_encode(array(	'success' => true,
+            						'PID' => $this->PID
+    		));
+    		break;
+    	case 1:
+    		return json_encode(array(	'success' => false,
+                                    'reason' => "Cannot find user information"
+    		));
+    	default:
+    		return json_encode(array(	'success' => false,
+    					'reason' => $this->reason
+    		));
+    		break;
+    	}
+    }
+    
+    public function documentverify($request) {
+        $error = 3;
+        
+        $idnumber = $request["idnumber"];
+    	$signedhash = $request["signedhash"];
+    	$signedtime = $request["signedtime"];
+    	$signature = base64_decode($request["signature"]);
+    	
+        $user = new CAuser($idnumber);
+        if ($user->isRegistered()) {
+            $publickey = $user->getPublicKey();
+            $message = "hash: ".$signedhash." time: ".$signedtime." WIB";
+            $pub = openssl_pkey_get_public($publickey);
+    	} else {
+            $this->reason = "User is not registered";
+    	}
+    	
+        if (isset($pub)) {
+            $r = openssl_verify($message, $signature, $pub, "sha256WithRSAEncryption");
+            if ($r) {
+                 $this->result = "Data ".$signedhash." signed by ".$idnumber." at time: ".$signedtime." WIB";
+    	        $error=0;    
+            } else {
+                $this->reason = "Signature is not valid";
+            }
+        }
+    	
+    	return $error;
+    }
+
+    public function documentverifyoutput($error) {
+        switch ($error) {
+    	case 0:
+    		//send pubkey 
+            return json_encode(array(	'success' => true,
+                        'result' => $this->result
+    		));
+    		break;
+        default:
+    		return json_encode(array(	'success' => false,
+    					'reason' => $this->reason
+    		));
+    		break;
+    	}
+    }
 }

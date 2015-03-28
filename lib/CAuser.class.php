@@ -45,11 +45,15 @@ class CAuser {
 	}
 	
 	public function getUserInfowithSignature() {
-        $userinfo = $this->decryptUserDB();
+        $userinfo = json_decode($this->decryptUserDB(),true);
 		return $userinfo;
 	}
 	
 	public function getUserDevice() {
 		return $this->userDB->deviceid;
 	}
+	
+	public function getPublicKey() {
+		return $this->userDB->pubkey;
+	}	
 }

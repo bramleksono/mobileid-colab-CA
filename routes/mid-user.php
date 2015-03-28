@@ -150,10 +150,11 @@ $app->get('/user/regcheck', function () use($app,$temp_register_que) {
 
 
 $app->post('/user/regconfirm', function () use($app,$temp_register_que,$ca_userdb_obj,$ca_userdb_que,$ca_obs_userdb_obj) {
+	//sample query : {"RegCode":"P9hiXwGwpz","Signature":"123","PIN":"123","GCMAddress":"123"}
+	
 	global $SIuserreg;
 	global $CAmessaging;
 	
-	//echo "Hello";
 	$body = json_decode($app->request()->getBody());
 	$regcode = $body->RegCode;
 	
@@ -238,7 +239,7 @@ $app->post('/user/regconfirm', function () use($app,$temp_register_que,$ca_userd
 		$ca_userdb_obj->set("userinfo", utf8_encode($userinfo));
 		$ca_userdb_obj->set("created", $regfield->get('created'));
 		$ca_userdb_obj->set("iv", utf8_encode($iv));
-		$ca_userdb_obj->set("pubkey", utf8_encode($response->pubkey));
+		$ca_userdb_obj->set("pubkey", $response->pubkey);
 		$ca_userdb_obj->set("deviceid", $body->GCMAddress);
 		try {
 			$ca_userdb_obj->save();
