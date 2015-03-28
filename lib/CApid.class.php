@@ -47,7 +47,9 @@ class CApid {
     	$data = utf8_decode($encrypted->get('data'));
     	$iv =  utf8_decode($encrypted->get('iv'));
     	$key=getkey($encrypted->get('created'));
-		return json_decode(decryptdb($data,$iv,$key), true);
+        $decrypted = decryptdb($data,$iv,$key);
+        $decrypted = preg_replace('/[[:^print:]]/', '', $decrypted);
+		return json_decode($decrypted, true);
 	}
 	
 	public function isExist() {
