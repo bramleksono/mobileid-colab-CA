@@ -9,13 +9,7 @@ function strtohex($x) {
 function getkey($pin) {
 	$host= gethostname();
 	$ip = gethostbyname($host);
-	
-	$configfile = 'config.json';
-	$config = file_get_contents($configfile);
-	$config = json_decode($config, true);
-	$hex = $config["config"]["random"];
-	
-	$pphrase = $host.$ip.$hex.$pin;
+	$pphrase = $host.$ip.$pin;
 	return hash('sha256', $pphrase, true);
 }
 

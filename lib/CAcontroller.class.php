@@ -139,6 +139,13 @@ class CAcontroller {
         $idnumber = $request["userinfo"]["nik"];
 	    $callback = $request["callback"];
 	    $message = $request["message"];
+        
+        if (isset($request["projectid"])) {
+            $projectid = $request["projectid"];
+        } else {
+            $projectid = "";
+        }
+	    
 	    //echo "Login request to ".$idnumber;
 	    $user = new CAuser($idnumber);
 	    
@@ -152,7 +159,7 @@ class CAcontroller {
     	
     	if ($error==0) {
     		//send request to SI
-    		$req = (object) array("userinfo" => $userinfo, "deviceid" => $deviceid, "message" => $message, "callback" => $callback);
+    		$req = (object) array("userinfo" => $userinfo, "deviceid" => $deviceid, "message" => $message, "projectid" => $projectid, "callback" => $callback);
     		$req = json_encode($req);
         	$result =sendjson($req,$SIverify);
         	$result = json_decode($result, true);
@@ -248,6 +255,7 @@ class CAcontroller {
     	    $data = json_decode($piddb->getPID(),true);
     	    return json_encode(array(	'success' => true,
             						    'PID' => $PID,
+                                        'projectid' => $data["projectid"],
             						    'userinfo' => $data["userinfo"]
     		));
     	} else {

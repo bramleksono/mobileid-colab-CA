@@ -22,7 +22,7 @@ $master_key= "";
 ParseClient::initialize( $app_id, $rest_key, $master_key );
 
 //Lib
-require 'lib/CAuser.class.php';  // Handling User Class'
+require 'lib/CAcontroller.class.php';  // Handling CA controller class
 
 //Routes
 require 'routes/mid-CAsignature.php';

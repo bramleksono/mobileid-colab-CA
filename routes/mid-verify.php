@@ -3,7 +3,8 @@
 $app->post('/verify/', function () use ($app) {
    //example query : {"userinfo":{"nik":"1231230509890001"},"callback":"http://postcatcher.in/catchers/54f7074cc895880300002ba1","message":"Verification request from user 1231230509890005"}
 	$body = json_decode($app->request()->getBody(), true);
-	
+	$body["message"] = "Identity request for Mobile ID website verification";
+    
 	$controller = new CAcontroller();
 	$error = $controller->verifyreq($body);
 	
