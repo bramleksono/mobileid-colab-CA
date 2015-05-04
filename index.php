@@ -14,15 +14,9 @@ class ResourceNotFoundException extends Exception {}
 $configfile = 'config.json';
 $addressfile = 'config/address.json';
 
-//Parse Backend
-use Parse\ParseClient;
-$app_id = "";
-$rest_key = "";
-$master_key= "";
-ParseClient::initialize( $app_id, $rest_key, $master_key );
-
 //Lib
 require 'lib/CAcontroller.class.php';  // Handling CA controller class
+require 'config/parse.php';  // Initialize parse database
 
 //Routes
 require 'routes/mid-CAsignature.php';
