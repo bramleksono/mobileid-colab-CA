@@ -247,7 +247,7 @@ $app->post('/user/regconfirm', function () use($app,$temp_register_que,$ca_userd
 			//$regcode = $ca_userdb_obj->getObjectId();
 			//echo 'New object created with objectId: ' . $regcode;
 			//send success message
-			$reg = (object) array("userinfo" => (object) array("nik" => $idnumber, "message" => "You are now registered to MobileID"));
+			$reg = (object) array("userinfo" => (object) array("nik" => $idnumber, "message" => "You are now registered to Mobile ID"));
     		$reg = constmessagetoCA($reg);
     		$reg = json_encode($reg);
     		$result =sendjson($reg,$CAmessaging);

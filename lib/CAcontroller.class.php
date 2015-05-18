@@ -157,6 +157,11 @@ class CAcontroller {
             $error=1;
     	}
     	
+    	if ($userinfo == null) {
+            $this->reason = "Cannot read user information.";
+            $error=2;
+        } 
+    	
     	if ($error==0) {
     		//send request to SI
     		$req = (object) array("userinfo" => $userinfo, "deviceid" => $deviceid, "message" => $message, "projectid" => $projectid, "callback" => $callback);

@@ -7,9 +7,8 @@ function strtohex($x) {
 } 
 
 function getkey($pin) {
-	$host= gethostname();
-	$ip = gethostbyname($host);
-	$pphrase = $host.$ip.$pin;
+	global $serverkey;
+	$pphrase = $serverkey.$pin;
 	return hash('sha256', $pphrase, true);
 }
 
