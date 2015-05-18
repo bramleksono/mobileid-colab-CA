@@ -19,7 +19,6 @@ require 'lib/CAcontroller.class.php';  // Handling CA controller class
 require 'config/parse.php';  // Initialize parse database
 
 //Routes
-require 'routes/mid-CAsignature.php';
 require 'routes/mid-user.php';
 require 'routes/mid-login.php';
 require 'routes/mid-message.php';
