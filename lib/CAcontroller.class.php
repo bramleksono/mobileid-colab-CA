@@ -157,7 +157,7 @@ class CAcontroller {
             $error=1;
     	}
     	
-    	if ($userinfo == null) {
+    	if (empty($userinfo)) {
             $this->reason = "Cannot read user information.";
             $error=2;
         } 
